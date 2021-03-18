@@ -25,9 +25,6 @@ This is the plugin configuration that is expected via the `--config` param
 
 ```toml
 [[inputs.flume_water]]
-  ## Timeout for HTTP message
-  # timeout = "5s"
-
   client_id = "clientid"
   client_secret = "secret"
   username = "username"
