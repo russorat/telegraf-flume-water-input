@@ -1,0 +1,4 @@
+vendor
+*.conf
+bin
+.DS_Store
