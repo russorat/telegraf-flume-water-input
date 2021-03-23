@@ -11,18 +11,20 @@ import (
 )
 
 const (
-	metricName           = "flume_water"
-	defaultClientTimeout = 5 * time.Second
+	metricName      = "flume_water"
+	defaultLookback = 5
+	defaultUnits    = flume.FlumeWaterUnitGallon
 )
 const MetricName = "flume_water"
 
 type FlumeWater struct {
-	Timeout      time.Duration `toml:"timeout"`
-	ClientID     string        `toml:"client_id"`
-	ClientSecret string        `toml:"client_secret"`
-	Username     string        `toml:"username"`
-	Password     string        `toml:"password"`
-	DeviceID     string        `toml:"device_id"`
+	ClientID     string `toml:"client_id"`
+	ClientSecret string `toml:"client_secret"`
+	Username     string `toml:"username"`
+	Password     string `toml:"password"`
+	DeviceID     string `toml:"device_id"`
+	LookbackMins int    `toml:"lookback_mins"`
+	Units        string `toml:"units"`
 
 	Queries []flume.FlumeWaterQuery `toml:"query"`
 
@@ -44,23 +46,22 @@ type FlumeQueryRequest struct {
 
 func init() {
 	inputs.Add("flume_water", func() telegraf.Input {
-		return &FlumeWater{
-			Timeout: defaultClientTimeout,
-		}
+		return &FlumeWater{}
 	})
 }
 
 func (fw *FlumeWater) SampleConfig() string {
-	return `
-    ## Timeout for HTTP message
-    # timeout = "5s"
-    
+	return `    
     client_id = "clientid"
     client_secret = "secret"
 	username = "username"
 	password = "password"
-	## If this isn't set, we will fetch your device list and pick one
+	## If this isn't set, we will fetch your device list and pick the first one
 	#device_id = ""
+	## lookback_mins is the amount of minutes to look back when querying data. This helps catch any late arriving data
+	#lookback_mins = 5
+	## units can be one of GALLONS, LITERS, CUBIC_FEET, or CUBIC_METERS
+	#units = "GALLONS"
 `
 }
 
@@ -72,15 +73,32 @@ func (fw *FlumeWater) Gather(a telegraf.Accumulator) error {
 	fw.client = flume.NewClient(fw.ClientID, fw.ClientSecret, fw.Username, fw.Password)
 	if fw.device.ID == "" {
 		var err error
-		fw.device, err = fw.client.FetchUserDevice(fw.DeviceID, flume.FlumeWaterFetchDeviceRequest{IncludeUser: true, IncludeLocation: true})
-		if err != nil {
-			a.AddError(err)
+		if fw.DeviceID == "" {
+			devices, err := fw.client.FetchUserDevices(flume.FlumeWaterFetchDeviceRequest{IncludeUser: true, IncludeLocation: true})
+			if err != nil {
+				a.AddError(err)
+				return nil
+			} else {
+				fw.device = devices[0]
+			}
+		} else {
+			fw.device, err = fw.client.FetchUserDevice(fw.DeviceID, flume.FlumeWaterFetchDeviceRequest{IncludeUser: true, IncludeLocation: true})
+			if err != nil {
+				a.AddError(err)
+				return nil
+			}
 		}
 	}
 	until := time.Now()
 	since := time.Now()
-	since = since.Add(-5 * time.Minute)
+	if fw.LookbackMins == 0 {
+		fw.LookbackMins = defaultLookback
+	}
+	since = since.Add((-1 * time.Duration(fw.LookbackMins)) * time.Minute)
 
+	if fw.Units == "" {
+		fw.Units = fmt.Sprint(defaultUnits)
+	}
 	values := flume.FlumeWaterQueryRequest{
 		Queries: []flume.FlumeWaterQuery{
 			{
@@ -88,12 +106,13 @@ func (fw *FlumeWater) Gather(a telegraf.Accumulator) error {
 				SinceDatetime: since.Format("2006-01-02 15:04") + ":00",
 				UntilDatetime: until.Format("2006-01-02 15:04") + ":00",
 				RequestID:     "flume-water-telegraf-input",
-				Units:         flume.FlumeWaterUnitGallon,
+				Units:         flume.FlumeWaterUnit(fw.Units),
 			}},
 	}
-	results, err := fw.client.QueryUserDevice(fw.DeviceID, values)
+	results, err := fw.client.QueryUserDevice(fw.device.ID, values)
 	if err != nil {
 		a.AddError(err)
+		return nil
 	}
 	fw.sendMetric(a, &results)
 	return nil
