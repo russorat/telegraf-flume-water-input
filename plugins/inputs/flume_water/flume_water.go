@@ -54,14 +54,14 @@ func (fw *FlumeWater) SampleConfig() string {
 	return `    
     client_id = "clientid"
     client_secret = "secret"
-	username = "username"
-	password = "password"
-	## If this isn't set, we will fetch your device list and pick the first one
-	#device_id = ""
-	## lookback_mins is the amount of minutes to look back when querying data. This helps catch any late arriving data
-	#lookback_mins = 5
-	## units can be one of GALLONS, LITERS, CUBIC_FEET, or CUBIC_METERS
-	#units = "GALLONS"
+    username = "username"
+    password = "password"
+    ## If this isn't set, we will fetch your device list and pick the first one
+    #device_id = ""
+    ## lookback_mins is the amount of minutes to look back when querying data. This helps catch any late arriving data
+    #lookback_mins = 5
+    ## units can be one of GALLONS, LITERS, CUBIC_FEET, or CUBIC_METERS
+    #units = "GALLONS"
 `
 }
 
