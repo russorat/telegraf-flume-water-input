@@ -2,6 +2,7 @@ package flumewater
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -127,7 +128,7 @@ func (fw *FlumeWater) sendMetric(a telegraf.Accumulator, results *[]flume.FlumeW
 		for key, element := range s {
 			for _, bucket := range element {
 				f := map[string]interface{}{
-					"gallons": bucket.Value,
+					"value": bucket.Value,
 				}
 				t := map[string]string{
 					"request_id":             key,
@@ -141,6 +142,7 @@ func (fw *FlumeWater) sendMetric(a telegraf.Accumulator, results *[]flume.FlumeW
 					"location_state":         fw.device.Location.State,
 					"location_postal_code":   fw.device.Location.PostalCode,
 					"location_building_type": fw.device.Location.BuildingType,
+					"units":                  strings.ToLower(fw.Units),
 				}
 				tz, err := time.LoadLocation(fw.device.Location.TZ)
 				if err != nil {

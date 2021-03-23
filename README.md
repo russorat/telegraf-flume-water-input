@@ -87,11 +87,12 @@ To allow Telegraf to control the interval of the gather, set `--poll_interval_di
     - location_state
     - request_id
     - user_email
+    - units
   - fields:
-    - gallons (float)
+    - value (float)
 
 ### Example Output
 
 ```
-flume_water,bridge_id=45645645645634,device_id=34534534656456,device_type=2,location_building_type=SINGLE_FAMILY_HOME,location_city=San\ Francisco,location_name=Home,location_postal_code=94110,location_state=CA,request_id=flume-water-telegraf-input,user_email=russ@example.com gallons=2.324 1616069940000000000
+flume_water,bridge_id=45645645645634,device_id=34534534656456,device_type=2,location_building_type=SINGLE_FAMILY_HOME,location_city=San\ Francisco,location_name=Home,location_postal_code=94110,location_state=CA,request_id=flume-water-telegraf-input,user_email=russ@example.com,units=gallons value=2.324 1616069940000000000
 ```
